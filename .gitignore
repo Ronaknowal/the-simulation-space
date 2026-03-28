@@ -7,3 +7,4 @@ public/cesium/
 .superpowers/
 *.tsbuildinfo
 next-env.d.ts
+engine/
