@@ -8,26 +8,6 @@ import { createDarkBasemapProvider } from "@/lib/cesium/imagery-providers";
 
 initializeCesium();
 
-/**
- * India-compliant boundary GeoJSON URL.
- * Survey of India's official boundary shows PoK, Aksai Chin,
- * and the complete J&K as integral parts of India.
- * Source: onlinemaps.surveyofindia.gov.in
- */
-const INDIA_BOUNDARY_URL =
-  "https://raw.githubusercontent.com/nicholasgasior/gojsonq/master/data/india.json";
-
-/**
- * MiniGlobe — High-quality, interactive, dark globe for the PULSE dashboard.
- *
- * - CartoDB Dark Matter basemap (detailed landmass outlines)
- * - Full resolution tiles (maximumScreenSpaceError = 2)
- * - Interactive: rotate + zoom enabled
- * - India-compliant borders overlay
- * - No stars, no sun, no moon — clean dark background
- * - Subtle blue atmosphere edge glow
- * - Slow auto-rotation (pauses while user interacts)
- */
 export default function MiniGlobe() {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Cesium.Viewer | null>(null);
@@ -39,32 +19,45 @@ export default function MiniGlobe() {
     const creditContainer = document.createElement("div");
     creditContainer.style.display = "none";
 
-    // CartoDB Dark Matter — high-quality dark basemap with landmass detail
     const darkBasemap = createDarkBasemapProvider();
 
+    // Create viewer NORMALLY — don't pass false for skyBox/skyAtmosphere
     const viewer = new Cesium.Viewer(containerRef.current, {
       ...GLOBE_OPTIONS,
       creditContainer,
       baseLayer: new Cesium.ImageryLayer(darkBasemap),
       showRenderLoopErrors: false,
-      // Higher quality request render mode for sharp tiles
-      requestRenderMode: false,
     });
 
-    // ── High quality rendering ──
+    // ── Globe quality ──
     const globe = viewer.scene.globe;
     globe.enableLighting = false;
     globe.showGroundAtmosphere = true;
-    // Full resolution tiles — no degradation
     globe.maximumScreenSpaceError = 1.5;
-    // Dark base color for any gaps between tiles
     globe.baseColor = Cesium.Color.fromCssColorString("#080c14");
-    // Enable depth test for proper rendering
     globe.depthTestAgainstTerrain = false;
-    // Tile cache for snappier loading
     globe.tileCacheSize = 200;
 
-    // ── Atmosphere — subtle blue-teal edge glow ──
+    // ── REMOVE stars: destroy the skyBox after viewer is created ──
+    if (viewer.scene.skyBox) {
+      viewer.scene.skyBox.show = false;
+      // Also try to destroy it so no star texture is ever loaded
+      try {
+        viewer.scene.skyBox.destroy();
+      } catch {
+        // some versions don't support destroy
+      }
+      (viewer.scene as any).skyBox = undefined;
+    }
+
+    // ── Background: solid dark ──
+    viewer.scene.backgroundColor = Cesium.Color.fromCssColorString("#06090d");
+
+    // ── Kill sun/moon ──
+    if (viewer.scene.sun) viewer.scene.sun.show = false;
+    if (viewer.scene.moon) viewer.scene.moon.show = false;
+
+    // ── Atmosphere: subtle edge glow ──
     if (viewer.scene.skyAtmosphere) {
       viewer.scene.skyAtmosphere.show = true;
       viewer.scene.skyAtmosphere.hueShift = -0.03;
@@ -72,24 +65,17 @@ export default function MiniGlobe() {
       viewer.scene.skyAtmosphere.brightnessShift = -0.35;
     }
 
-    // ── Background: solid dark — NO stars, NO space imagery ──
-    viewer.scene.backgroundColor = Cesium.Color.fromCssColorString("#06090d");
-    if (viewer.scene.skyBox) viewer.scene.skyBox.show = false;
-    if (viewer.scene.sun) viewer.scene.sun.show = false;
-    if (viewer.scene.moon) viewer.scene.moon.show = false;
-
-    // ── Interaction: ENABLE rotation + zoom, disable tilt ──
+    // ── Interaction: rotate + zoom, no tilt ──
     const controller = viewer.scene.screenSpaceCameraController;
     controller.enableRotate = true;
     controller.enableZoom = true;
-    controller.enableTilt = false; // keep it top-down-ish
+    controller.enableTilt = false;
     controller.enableTranslate = false;
     controller.enableLook = false;
-    // Zoom limits
-    controller.minimumZoomDistance = 2_000_000; // ~2000km min
-    controller.maximumZoomDistance = 30_000_000; // ~30000km max
+    controller.minimumZoomDistance = 2_000_000;
+    controller.maximumZoomDistance = 30_000_000;
 
-    // ── Camera: angled view showing India/Asia region ──
+    // ── Camera: focused on India/Asia ──
     viewer.camera.setView({
       destination: Cesium.Cartesian3.fromDegrees(78, 22, 16_000_000),
       orientation: {
@@ -99,19 +85,23 @@ export default function MiniGlobe() {
       },
     });
 
-    // ── Auto-rotation: pauses when user is interacting ──
+    // ── Auto-rotation with interaction pause ──
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    let resumeTimeout: ReturnType<typeof setTimeout>;
+
     handler.setInputAction(() => {
       isUserInteractingRef.current = true;
     }, Cesium.ScreenSpaceEventType.LEFT_DOWN);
     handler.setInputAction(() => {
-      isUserInteractingRef.current = false;
+      clearTimeout(resumeTimeout);
+      resumeTimeout = setTimeout(() => {
+        isUserInteractingRef.current = false;
+      }, 3000);
     }, Cesium.ScreenSpaceEventType.LEFT_UP);
     handler.setInputAction(() => {
       isUserInteractingRef.current = true;
-      // Resume auto-rotate 3s after last wheel
-      clearTimeout((window as any).__miniGlobeTimeout);
-      (window as any).__miniGlobeTimeout = setTimeout(() => {
+      clearTimeout(resumeTimeout);
+      resumeTimeout = setTimeout(() => {
         isUserInteractingRef.current = false;
       }, 3000);
     }, Cesium.ScreenSpaceEventType.WHEEL);
@@ -122,14 +112,11 @@ export default function MiniGlobe() {
       }
     });
 
-    // ── India-compliant boundary overlay ──
-    // Load official India boundary and draw with accent color
-    loadIndiaBoundary(viewer);
+    // ── India disputed territories overlay ──
+    addIndiaDisputedTerritories(viewer);
 
     // ── Rendering quality ──
-    // Enable FXAA anti-aliasing for smoother edges
     viewer.scene.postProcessStages.fxaa.enabled = true;
-    // Higher resolution rendering
     if (viewer.resolutionScale !== undefined) {
       viewer.resolutionScale = window.devicePixelRatio || 1;
     }
@@ -151,8 +138,8 @@ export default function MiniGlobe() {
     viewerRef.current = viewer;
 
     return () => {
+      clearTimeout(resumeTimeout);
       handler.destroy();
-      clearTimeout((window as any).__miniGlobeTimeout);
       if (viewerRef.current && !viewerRef.current.isDestroyed()) {
         viewerRef.current.destroy();
       }
@@ -170,91 +157,82 @@ export default function MiniGlobe() {
 }
 
 /**
- * Load and render India's official boundary showing PoK and Aksai Chin
- * as integral parts of India (Survey of India compliant).
+ * India's disputed territories shown per Indian government's position:
+ * - PoK (Gilgit-Baltistan + Azad Kashmir): highlighted as disputed/occupied
+ * - Aksai Chin: highlighted as disputed/occupied
+ * Both shown with a distinct teal highlight + dashed boundary
  */
-async function loadIndiaBoundary(viewer: Cesium.Viewer) {
+function addIndiaDisputedTerritories(viewer: Cesium.Viewer) {
   try {
-    // India boundary with PoK and Aksai Chin as per official Indian map
-    // This GeoJSON includes the full extent of Jammu & Kashmir including
-    // Pakistan-occupied Kashmir (PoK) and Aksai Chin
-    const indiaGeoJson = {
-      type: "Feature" as const,
-      properties: { name: "India" },
-      geometry: {
-        type: "Polygon" as const,
-        coordinates: [
-          // Simplified India boundary including PoK & Aksai Chin
-          // Official boundary per Survey of India
-          [
-            [68.17, 23.69], // Gujarat coast (SW)
-            [68.84, 24.27], // Rann of Kutch
-            [70.28, 25.71], // Sindh border
-            [70.46, 27.57], // Rajasthan border
-            [69.51, 29.40], // Punjab border start
-            [71.10, 30.97], // Punjab/Pakistan border
-            [73.50, 32.70], // PoK southern extent
-            [73.75, 34.32], // PoK - Muzaffarabad
-            [74.82, 34.70], // PoK - Line of Control
-            [75.76, 35.50], // Northern Kashmir (Gilgit-Baltistan)
-            [76.87, 35.81], // Siachen area
-            [77.80, 35.50], // Karakoram Pass
-            [78.73, 34.65], // Aksai Chin western edge
-            [79.70, 34.50], // Aksai Chin
-            [80.21, 33.73], // Aksai Chin eastern edge
-            [79.53, 32.75], // Ladakh
-            [79.22, 32.50], // India-China-Nepal tripoint area
-            [80.06, 31.17], // Uttarakhand border
-            [81.11, 30.18], // Nepal border west
-            [83.94, 27.36], // Nepal border
-            [86.02, 27.14], // Nepal border
-            [88.17, 27.84], // Sikkim
-            [88.81, 28.09], // Sikkim-Bhutan
-            [89.63, 28.17], // Bhutan border
-            [92.10, 27.81], // Arunachal Pradesh west
-            [93.11, 28.33], // Arunachal Pradesh
-            [96.17, 28.83], // Arunachal Pradesh east (McMahon Line)
-            [97.33, 28.26], // India-Myanmar border north
-            [97.37, 27.09], // Nagaland
-            [96.17, 24.50], // Manipur
-            [94.58, 23.67], // Mizoram
-            [93.33, 22.00], // Myanmar border south
-            [92.58, 21.17], // Tripura
-            [92.30, 20.74], // Bangladesh SE border
-            [92.05, 21.58], // Chittagong
-            [91.63, 22.38], // Bangladesh border
-            [89.83, 21.92], // Sundarbans
-            [88.85, 22.08], // West Bengal
-            [88.09, 21.69], // Bay of Bengal coast
-            [87.23, 21.56], // Odisha coast
-            [84.84, 19.40], // Odisha coast
-            [83.40, 17.71], // Andhra coast
-            [80.20, 13.54], // Chennai area
-            [79.85, 11.25], // Tamil Nadu
-            [77.56, 8.08], // Kanyakumari
-            [76.04, 9.44], // Kerala coast
-            [73.77, 12.27], // Karnataka coast
-            [73.05, 15.08], // Goa
-            [72.67, 17.45], // Maharashtra coast
-            [72.17, 20.40], // Gujarat coast
-            [70.17, 22.04], // Gujarat
-            [68.97, 22.33], // Gujarat coast
-            [68.17, 23.69], // Close loop
-          ],
-        ],
-      },
-    };
+    // PoK region (Pakistan-administered Kashmir)
+    const pokPositions = Cesium.Cartesian3.fromDegreesArray([
+      73.05, 33.73, 73.58, 34.32, 74.00, 34.68,
+      74.40, 35.05, 74.89, 35.49, 75.38, 35.82,
+      76.05, 35.84, 76.87, 35.81, 77.05, 35.50,
+      77.80, 35.49, 77.05, 34.30, 76.77, 34.02,
+      76.33, 33.37, 75.74, 32.78, 75.14, 32.68,
+      74.65, 32.76, 74.10, 33.20, 73.58, 33.30,
+      73.05, 33.73,
+    ]);
 
-    // Add India boundary as a highlighted entity
-    viewer.dataSources.add(
-      Cesium.GeoJsonDataSource.load(indiaGeoJson, {
-        stroke: Cesium.Color.fromCssColorString("#4a9aba").withAlpha(0.6),
-        strokeWidth: 1.5,
-        fill: Cesium.Color.fromCssColorString("#4a9aba").withAlpha(0.03),
+    // Aksai Chin region (China-administered)
+    const aksaiPositions = Cesium.Cartesian3.fromDegreesArray([
+      77.80, 35.49, 78.40, 35.30, 79.05, 34.87,
+      79.70, 34.50, 80.21, 33.73, 80.00, 33.10,
+      79.53, 32.75, 79.22, 32.50, 78.75, 32.63,
+      78.30, 33.05, 77.85, 33.50, 77.58, 34.02,
+      77.05, 34.30, 77.80, 35.49,
+    ]);
+
+    // Disputed territory style: semi-transparent fill + dashed outline
+    const disputedFill = Cesium.Color.fromCssColorString("#4a9aba").withAlpha(0.08);
+    const disputedOutline = Cesium.Color.fromCssColorString("#4a9aba").withAlpha(0.5);
+
+    // PoK polygon
+    viewer.entities.add({
+      name: "PoK (Indian Territory)",
+      polygon: {
+        hierarchy: new Cesium.PolygonHierarchy(pokPositions),
+        material: disputedFill,
+        outline: true,
+        outlineColor: disputedOutline,
+        outlineWidth: 1,
+      },
+    });
+
+    // Aksai Chin polygon
+    viewer.entities.add({
+      name: "Aksai Chin (Indian Territory)",
+      polygon: {
+        hierarchy: new Cesium.PolygonHierarchy(aksaiPositions),
+        material: disputedFill,
+        outline: true,
+        outlineColor: disputedOutline,
+        outlineWidth: 1,
+      },
+    });
+
+    // Indian claim boundary line (northern border including PoK + Aksai Chin)
+    const claimLine = Cesium.Cartesian3.fromDegreesArray([
+      73.05, 33.73, 73.58, 34.32, 74.40, 35.05,
+      75.38, 35.82, 76.87, 35.81, 77.80, 35.49,
+      78.40, 35.30, 79.05, 34.87, 79.70, 34.50,
+      80.21, 33.73,
+    ]);
+
+    viewer.entities.add({
+      name: "Indian Claimed Boundary",
+      polyline: {
+        positions: claimLine,
+        width: 1.5,
+        material: new Cesium.PolylineDashMaterialProperty({
+          color: Cesium.Color.fromCssColorString("#4a9aba").withAlpha(0.7),
+          dashLength: 10,
+        }),
         clampToGround: true,
-      })
-    );
+      },
+    });
   } catch {
-    // Silently fail — the globe still works without the overlay
+    // Silent fail — globe renders fine without overlays
   }
 }

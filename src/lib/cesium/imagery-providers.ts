@@ -93,7 +93,9 @@ export function createArcGISImageryProvider() {
  */
 export function createDarkBasemapProvider() {
   return new Cesium.UrlTemplateImageryProvider({
-    url: "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+    // Use dark_nolabels to avoid locale-dependent Chinese/Arabic labels
+    // Labels will be handled by our own overlay if needed
+    url: "https://basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}@2x.png",
     maximumLevel: 19,
     credit: new Cesium.Credit("CartoDB"),
   });
