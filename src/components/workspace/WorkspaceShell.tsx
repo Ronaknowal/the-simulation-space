@@ -7,6 +7,7 @@ import Sidebar from "./Sidebar";
 import Timeline from "./Timeline";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import PulseModule from "@/components/modules/pulse/PulseModule";
+import EntityDetailPanel from "@/components/panels/EntityDetailPanel";
 
 const GlobeModule = dynamic(
   () => import("@/components/modules/globe/GlobeModule"),
@@ -31,13 +32,14 @@ export default function WorkspaceShell() {
       <TopBar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-hidden relative">
           <ErrorBoundary name={activeModule}>
             {activeModule === "pulse" && <PulseModule />}
             {activeModule === "globe" && <GlobeModule />}
             {activeModule === "terminal" && <TerminalModule />}
             {activeModule === "simulation" && <SimulationModule />}
           </ErrorBoundary>
+          <EntityDetailPanel />
         </main>
       </div>
       <Timeline />
