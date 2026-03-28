@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useStore } from "@/store";
 import TopBar from "./TopBar";
+import TabBar from "./TabBar";
 import Sidebar from "./Sidebar";
 import Timeline from "./Timeline";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
@@ -30,6 +31,7 @@ export default function WorkspaceShell() {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <TopBar />
+      <TabBar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <main className="flex-1 overflow-hidden relative">
