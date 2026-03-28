@@ -110,8 +110,7 @@ export default function MiniGlobe() {
       }
     });
 
-    // ── Load India's official boundary (Survey of India compliant) ──
-    loadIndiaBoundary(viewer);
+    // India boundary overlay removed — using standard international map for now
 
     // ── Rendering quality ──
     viewer.scene.postProcessStages.fxaa.enabled = true;
@@ -154,83 +153,5 @@ export default function MiniGlobe() {
   );
 }
 
-/**
- * Load India's official boundary from the pre-processed GeoJSON file.
- * Source: datameet/maps india-composite.geojson (Survey of India compliant)
- * This boundary includes PoK, Aksai Chin, and Shaksgam Valley as Indian territory.
- *
- * The boundary is rendered as a highlighted outline on the globe. Since the
- * CartoDB basemap uses international borders (which do NOT show PoK/Aksai Chin
- * as Indian territory), our overlay draws India's CLAIMED boundary on top,
- * effectively showing the full territory India claims — including the
- * areas occupied by Pakistan and China.
- */
-async function loadIndiaBoundary(viewer: Cesium.Viewer) {
-  try {
-    // Load the Survey of India compliant boundary (simplified to ~100KB)
-    const response = await fetch("/geo/india-boundary.geojson");
-    if (!response.ok) return;
-
-    const geojson = await response.json();
-
-    // Render India's full boundary as an accent-colored outline
-    const dataSource = await Cesium.GeoJsonDataSource.load(geojson, {
-      stroke: Cesium.Color.fromCssColorString("#4a9aba").withAlpha(0.5),
-      strokeWidth: 1.5,
-      fill: Cesium.Color.TRANSPARENT,
-      clampToGround: true,
-    });
-
-    viewer.dataSources.add(dataSource);
-
-    // Now separately highlight the disputed regions with a visible fill.
-    // These coordinates approximate the PoK and Aksai Chin regions that
-    // are part of India per Survey of India but shown differently on
-    // international maps.
-
-    // PoK (Gilgit-Baltistan + Azad Kashmir)
-    // The area between the LoC and the Indian claim line
-    viewer.entities.add({
-      name: "PoK — Indian Territory (Occupied by Pakistan)",
-      polygon: {
-        hierarchy: new Cesium.PolygonHierarchy(
-          Cesium.Cartesian3.fromDegreesArray([
-            73.0, 33.7, 73.5, 34.3, 74.0, 34.7,
-            74.4, 35.0, 74.9, 35.5, 75.4, 35.8,
-            76.1, 35.8, 76.9, 35.8, 77.0, 35.5,
-            77.8, 35.5, 77.0, 34.3, 76.8, 34.0,
-            76.3, 33.4, 75.7, 32.8, 75.1, 32.7,
-            74.7, 32.8, 74.1, 33.2, 73.6, 33.3,
-            73.0, 33.7,
-          ])
-        ),
-        material: Cesium.Color.fromCssColorString("#4a9aba").withAlpha(0.15),
-        outline: true,
-        outlineColor: Cesium.Color.fromCssColorString("#4a9aba").withAlpha(0.4),
-        outlineWidth: 1,
-      },
-    });
-
-    // Aksai Chin (occupied by China)
-    viewer.entities.add({
-      name: "Aksai Chin — Indian Territory (Occupied by China)",
-      polygon: {
-        hierarchy: new Cesium.PolygonHierarchy(
-          Cesium.Cartesian3.fromDegreesArray([
-            77.8, 35.5, 78.4, 35.3, 79.1, 34.9,
-            79.7, 34.5, 80.2, 33.7, 80.0, 33.1,
-            79.5, 32.8, 79.2, 32.5, 78.8, 32.6,
-            78.3, 33.1, 77.9, 33.5, 77.6, 34.0,
-            77.1, 34.3, 77.8, 35.5,
-          ])
-        ),
-        material: Cesium.Color.fromCssColorString("#4a9aba").withAlpha(0.15),
-        outline: true,
-        outlineColor: Cesium.Color.fromCssColorString("#4a9aba").withAlpha(0.4),
-        outlineWidth: 1,
-      },
-    });
-  } catch {
-    // Silent fail — globe works without the overlay
-  }
-}
+// India boundary overlay available at /geo/india-boundary.geojson (Survey of India compliant)
+// Can be re-enabled in the future with proper cartographic styling
