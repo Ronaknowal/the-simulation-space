@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  /* ── Surfaces ── */
+  --color-bg: #06090d;
+  --color-surface: #080c12;
+  --color-card: #0a0e14;
+  --color-border: #151a22;
+  --color-border-subtle: #0e1218;
+
+  /* ── Text hierarchy ── */
+  --color-text-primary: #c0ccc8;
+  --color-text-secondary: #889999;
+  --color-text-tertiary: #555566;
+  --color-text-disabled: #333344;
+
+  /* ── Primary accent (app-wide) ── */
+  --color-accent: #4a9aba;
+  --color-accent-hover: rgba(74, 158, 186, 0.15);
+  --color-accent-subtle: rgba(74, 158, 186, 0.05);
+
+  /* ── Terminal accent (terminal module only) ── */
+  --color-terminal: #d4952b;
+  --color-terminal-hover: rgba(212, 149, 43, 0.10);
+
+  /* ── Semantic status ── */
+  --color-positive: #2ecc71;
+  --color-negative: #e74c3c;
+  --color-warning: #d4952b;
+
+  /* ── Geometry ── */
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+
+  /* ── Typography ── */
+  --font-sans: var(--font-jetbrains), "IBM Plex Mono", ui-monospace, monospace;
+  --font-mono: var(--font-jetbrains), "IBM Plex Mono", ui-monospace, monospace;
+
+  /* ── Animations ── */
+  --animate-ticker: tickerScroll 60s linear infinite;
+  --animate-pulse-status: pulse-status 1.5s ease-in-out infinite;
+  --animate-fade-in: fade-in 0.2s ease-out;
+}
+
+@keyframes tickerScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes pulse-status {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Base styles ── */
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-feature-settings: "liga" 0;
+}
+
+/* ── Scrollbar styling ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb { background: var(--color-border); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-disabled); }
+
+/* ── Selection ── */
+::selection {
+  background-color: var(--color-accent);
+  color: var(--color-bg);
+}
