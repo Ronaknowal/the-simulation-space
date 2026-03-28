@@ -18,6 +18,11 @@ const TerminalModule = dynamic(
   { ssr: false, loading: () => <ModulePlaceholder name="TERMINAL" phase={2} /> }
 );
 
+const SimulationModule = dynamic(
+  () => import("@/components/modules/simulation/SimulationModule"),
+  { ssr: false, loading: () => <ModulePlaceholder name="SIMULATION" phase={3} /> }
+);
+
 export default function WorkspaceShell() {
   const activeModule = useStore((s) => s.activeModule);
 
@@ -31,7 +36,7 @@ export default function WorkspaceShell() {
             {activeModule === "pulse" && <PulseModule />}
             {activeModule === "globe" && <GlobeModule />}
             {activeModule === "terminal" && <TerminalModule />}
-            {activeModule === "simulation" && <ModulePlaceholder name="SIMULATION" phase={3} />}
+            {activeModule === "simulation" && <SimulationModule />}
           </ErrorBoundary>
         </main>
       </div>
