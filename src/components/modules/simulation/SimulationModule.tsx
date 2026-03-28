@@ -7,6 +7,7 @@ import SeedInput from "./SeedInput";
 import SimulationCard from "./SimulationCard";
 import SimulationOutput from "./SimulationOutput";
 import { useSimulationSSE } from "./useSimulationSSE";
+import ComparisonView from "./ComparisonView";
 
 /* ── Mock data for demonstration ── */
 
@@ -39,6 +40,7 @@ export default function SimulationModule() {
   const simulations = useStore((s) => s.simulations);
   const startSimulation = useStore((s) => s.startSimulation);
   const updateSimulation = useStore((s) => s.updateSimulation);
+  const compareSimulations = useStore((s) => s.compareSimulations);
 
   const [selectedSimId, setSelectedSimId] = useState<string | null>(null);
   const progressTimers = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
@@ -51,6 +53,10 @@ export default function SimulationModule() {
 
   // Check if any simulation is currently running
   const hasRunning = simList.some((s) => s.status === "running");
+
+  // Completed simulations available for comparison
+  const completedSims = simList.filter((s) => s.status === "completed");
+  const canCompare = completedSims.length >= 2;
 
   // Selected simulation data
   const selectedSim = selectedSimId ? simulations[selectedSimId] : null;
@@ -136,19 +142,38 @@ export default function SimulationModule() {
     [startSimulation, updateSimulation]
   );
 
+  const handleCompare = () => {
+    // Use the two most recent completed simulations
+    const ids = completedSims.slice(0, 2).map((s) => s.id);
+    compareSimulations(ids);
+  };
+
   return (
     <div className="flex flex-col h-full overflow-hidden bg-bg">
+      {/* Comparison overlay */}
+      <ComparisonView />
+
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border flex-shrink-0">
         <span className="text-[9px] uppercase tracking-widest text-text-disabled">
           Simulation Engine
         </span>
-        <button
-          onClick={() => setSelectedSimId(null)}
-          className="text-[8px] uppercase tracking-widest text-accent border border-accent/30 px-2 py-0.5 hover:bg-accent/10 transition-colors"
-        >
-          + New Simulation
-        </button>
+        <div className="flex items-center gap-2">
+          {canCompare && (
+            <button
+              onClick={handleCompare}
+              className="text-[8px] uppercase tracking-widest text-positive border border-positive/30 px-2 py-0.5 hover:bg-positive/10 transition-colors"
+            >
+              Compare ({completedSims.length})
+            </button>
+          )}
+          <button
+            onClick={() => setSelectedSimId(null)}
+            className="text-[8px] uppercase tracking-widest text-accent border border-accent/30 px-2 py-0.5 hover:bg-accent/10 transition-colors"
+          >
+            + New Simulation
+          </button>
+        </div>
       </div>
 
       {/* Main content: seed input (left 60%) + sim cards (right 40%) */}

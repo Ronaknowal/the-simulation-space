@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import type { SimulationState, AgentAction, CascadeImpact, MarketImpact } from "@/types/simulation";
+import AIProgressIndicator from "@/components/shared/AIProgressIndicator";
 
 type OutputTab = "feed" | "impacts" | "market" | "report";
 
@@ -16,11 +17,30 @@ const TABS: { id: OutputTab; label: string }[] = [
   { id: "report", label: "Report" },
 ];
 
+function getPhaseText(sim: SimulationState): string {
+  if (sim.progress < 30) return "Initializing agents";
+  if (sim.progress < 55) return "Analyzing agents";
+  if (sim.progress < 75) return "Building dependency graph";
+  if (sim.progress < 90) return "Projecting market impacts";
+  return "Generating report";
+}
+
 export default function SimulationOutput({ simulation }: SimulationOutputProps) {
   const [activeTab, setActiveTab] = useState<OutputTab>("feed");
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      {/* AI progress indicator when running */}
+      {simulation.status === "running" && (
+        <AIProgressIndicator
+          isRunning={true}
+          phase={getPhaseText(simulation)}
+          progress={simulation.progress / 100}
+          model="Gemini 2.5 Flash"
+          agentCount={simulation.agentCount}
+          elapsed={simulation.elapsed * 60}
+        />
+      )}
       {/* Tab bar */}
       <div className="flex border-b border-border flex-shrink-0">
         {TABS.map((tab) => (
