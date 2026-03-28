@@ -21,13 +21,13 @@ export interface LayerDefinition {
   minZoom?: number;
 }
 
-export interface LayerState<T = unknown> {
+export interface LayerState<T = any> {
   enabled: boolean;
   opacity: number;
   loading: boolean;
   error: string | null;
   data: T | null;
-  filters: Record<string, unknown>;
+  filters: Record<string, any>;
   lastUpdated: number;
 }
 

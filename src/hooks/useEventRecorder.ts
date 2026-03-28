@@ -95,7 +95,7 @@ export function useEventRecorder() {
         if (items.length === 0) continue;
 
         const snapshot: RecordedSnapshot = {
-          capturedAt: now,
+          timestamp: now,
           layerId,
           items,
         };
