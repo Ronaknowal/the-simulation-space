@@ -1,11 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useStore } from "@/store";
 import TopBar from "./TopBar";
 import Sidebar from "./Sidebar";
 import Timeline from "./Timeline";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import PulseModule from "@/components/modules/pulse/PulseModule";
+
+const GlobeModule = dynamic(
+  () => import("@/components/modules/globe/GlobeModule"),
+  { ssr: false },
+);
 
 export default function WorkspaceShell() {
   const activeModule = useStore((s) => s.activeModule);
@@ -18,7 +24,7 @@ export default function WorkspaceShell() {
         <main className="flex-1 overflow-hidden">
           <ErrorBoundary name={activeModule}>
             {activeModule === "pulse" && <PulseModule />}
-            {activeModule === "globe" && <ModulePlaceholder name="GLOBE" phase={2} />}
+            {activeModule === "globe" && <GlobeModule />}
             {activeModule === "terminal" && <ModulePlaceholder name="TERMINAL" phase={2} />}
             {activeModule === "simulation" && <ModulePlaceholder name="SIMULATION" phase={3} />}
           </ErrorBoundary>
