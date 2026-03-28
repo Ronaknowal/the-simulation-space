@@ -16,6 +16,11 @@ import {
   createSimulationSlice,
   type SimulationSlice,
 } from "./slices/simulation";
+import {
+  createSituationSlice,
+  type SituationSlice,
+} from "./slices/situation";
+import { createTabsSlice, type TabsSlice } from "./slices/tabs";
 
 export type AppStore = LayerSlice &
   CameraSlice &
@@ -27,7 +32,9 @@ export type AppStore = LayerSlice &
   MarketSlice &
   AlertSlice &
   RecordingSlice &
-  SimulationSlice;
+  SimulationSlice &
+  SituationSlice &
+  TabsSlice;
 
 export const useStore = create<AppStore>()(
   devtools(
@@ -44,6 +51,8 @@ export const useStore = create<AppStore>()(
         ...createAlertSlice(...args),
         ...createRecordingSlice(...args),
         ...createSimulationSlice(...args),
+        ...createSituationSlice(...args),
+        ...createTabsSlice(...args),
       })),
       {
         name: "tss-store",
@@ -55,6 +64,7 @@ export const useStore = create<AppStore>()(
           sharpenEnabled: state.sharpenEnabled,
           sharpenStrength: state.sharpenStrength,
           activeModule: state.activeModule,
+          activeSituationId: state.activeSituationId,
         }),
       }
     ),
