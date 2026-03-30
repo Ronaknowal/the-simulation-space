@@ -8,7 +8,7 @@
 
 import type { RecordingMeta, RecordedSnapshot } from "@/types/recording";
 
-const DB_NAME = "vyom-recordings";
+const DB_NAME = "tss-recordings";
 const DB_VERSION = 1;
 const META_STORE = "recording-meta";
 const SNAP_STORE = "recording-snapshots";
@@ -117,7 +117,7 @@ export async function exportRecording(
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `vyom-recording-${meta.name.replace(/\s+/g, "-")}-${meta.id.slice(0, 8)}.json`;
+  a.download = `tss-recording-${meta.name.replace(/\s+/g, "-")}-${meta.id.slice(0, 8)}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }

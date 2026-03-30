@@ -5,6 +5,13 @@ out/
 .env*.local
 public/cesium/
 .superpowers/
+.claude/
 *.tsbuildinfo
 next-env.d.ts
-engine/
+log/
+
+# Python simulation engine
+src/simulation-engine/.venv/
+src/simulation-engine/.data/
+**/__pycache__/
+*.pyc

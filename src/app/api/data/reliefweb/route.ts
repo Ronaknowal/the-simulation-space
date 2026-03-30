@@ -6,7 +6,7 @@ const HDX_BASE = "https://data.humdata.org/api/3/action";
 async function rwPost(endpoint: string, body: object, appname: string) {
   const res = await fetch(`${BASE}/${endpoint}?appname=${appname}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "User-Agent": "Vyom/1.0" },
+    headers: { "Content-Type": "application/json", "User-Agent": "TheSimulationSpace/1.0" },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(15_000),
   });
@@ -28,7 +28,7 @@ async function hdxFallback() {
 }
 
 export async function GET() {
-  const appname = process.env.RELIEFWEB_APPNAME || "vyom";
+  const appname = process.env.RELIEFWEB_APPNAME || "the-simulation-space";
 
   try {
     const [reports, disasters] = await Promise.all([

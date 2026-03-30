@@ -4,11 +4,10 @@ import { useCallback, useRef, useState } from "react";
 import * as Cesium from "cesium";
 import CesiumGlobe, { type CesiumGlobeRef } from "@/components/globe/CesiumGlobe";
 import DeckOverlay from "@/components/globe/DeckOverlay";
-import LayerManager from "@/components/globe/LayerManager";
+import RegionFilterBar from "@/components/globe/RegionFilterBar";
 import { useDeckLayers } from "@/hooks/useDeckLayers";
 import { useShaderPipeline } from "@/hooks/useShaderPipeline";
 import { useCesiumLayers } from "@/hooks/useCesiumLayers";
-import { useAlertEngine } from "@/hooks/useAlertEngine";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 
 export default function GlobeModule() {
@@ -20,15 +19,14 @@ export default function GlobeModule() {
   }, []);
 
   // Initialize hooks that need the viewer
-  useDeckLayers();
+  const deckLayers = useDeckLayers();
   useShaderPipeline(viewer);
   useCesiumLayers(viewer);
-  useAlertEngine();
 
   return (
     <div className="relative w-full h-full overflow-hidden">
-      {/* Layer controllers — only enabled layers mount */}
-      <LayerManager />
+      {/* Region quick navigation */}
+      <RegionFilterBar />
 
       {/* 3D Globe */}
       <ErrorBoundary name="CesiumGlobe">
@@ -38,7 +36,7 @@ export default function GlobeModule() {
       {/* deck.gl overlay */}
       {viewer && (
         <ErrorBoundary name="DeckOverlay">
-          <DeckOverlay viewer={viewer} />
+          <DeckOverlay viewer={viewer} layers={deckLayers} />
         </ErrorBoundary>
       )}
     </div>

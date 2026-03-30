@@ -25,7 +25,7 @@ export async function GET() {
   try {
     // Fetch snapshot to get real node count and sample IPs
     const upstream = await fetch(BITNODES_URL, {
-      headers: { "User-Agent": "Vyom/1.0" },
+      headers: { "User-Agent": "TheSimulationSpace/1.0" },
       signal: AbortSignal.timeout(20_000),
       cache: "no-store",
     });

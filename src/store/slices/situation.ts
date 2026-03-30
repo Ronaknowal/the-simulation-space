@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand";
 import type { Situation, SituationSeverity } from "@/types/situation";
-import type { VyomAlert, AlertPriority } from "@/types/store";
+import type { TSSAlert, AlertPriority } from "@/types/store";
 import type { AppStore } from "../index";
 
 export interface SituationSlice {
@@ -10,7 +10,7 @@ export interface SituationSlice {
   updateSituation: (id: string, updates: Partial<Situation>) => void;
   resolveSituation: (id: string) => void;
   setActiveSituation: (id: string | null) => void;
-  createFromAlert: (alert: VyomAlert) => string;
+  createFromAlert: (alert: TSSAlert) => string;
 }
 
 const PRIORITY_TO_SEVERITY: Record<AlertPriority, SituationSeverity> = {

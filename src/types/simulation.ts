@@ -34,6 +34,7 @@ export interface SimulationState {
   seed: string;
   config: SimConfig;
   status: "configuring" | "running" | "completed" | "failed";
+  statusMessage: string | null;
   agentCount: number;
   elapsed: number;
   progress: number;

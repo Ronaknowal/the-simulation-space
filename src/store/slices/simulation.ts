@@ -34,6 +34,7 @@ export const createSimulationSlice: StateCreator<
         seed,
         config,
         status: "configuring",
+        statusMessage: null,
         agentCount: config.agentCount,
         elapsed: 0,
         progress: 0,

@@ -69,30 +69,49 @@ function parseAircraft(a: any): AircraftPosition {
 }
 
 /**
+ * Delay helper for rate limiting.
+ */
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Fetch a single hub with error handling.
+ */
+async function fetchHub(lat: number, lon: number): Promise<any[]> {
+  try {
+    const r = await proxyFetch(`${ADSB_FI_BASE}/lat/${lat}/lon/${lon}/dist/250`);
+    if (!r.ok) return [];
+    const d = await r.json();
+    return (d.aircraft || []).filter((a: any) => a.lat != null && a.lon != null);
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Fetches aircraft positions from ADSB.fi using regional hub queries.
- * Makes parallel requests to 12 major hubs (250 NM radius each).
+ * Queries hubs ONE AT A TIME with 1.5s delay between requests
+ * to strictly respect ADSB.fi's 1 req/sec rate limit.
+ * Uses fewer hubs (6 major ones) for faster initial load.
  * De-duplicates aircraft by hex code.
  */
 export async function fetchAllAircraft(): Promise<AircraftPosition[]> {
-  const results = await Promise.allSettled(
-    QUERY_HUBS.map(([lat, lon]) =>
-      proxyFetch(`${ADSB_FI_BASE}/lat/${lat}/lon/${lon}/dist/300`)
-        .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-        .then((d) => (d.aircraft || []).filter((a: any) => a.lat != null && a.lon != null))
-    )
-  );
-
   const seen = new Set<string>();
   const aircraft: AircraftPosition[] = [];
 
-  for (const r of results) {
-    if (r.status === "fulfilled") {
-      for (const a of r.value) {
-        const key = a.hex || `${a.lat},${a.lon}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          aircraft.push(parseAircraft(a));
-        }
+  // Use only 6 major hubs for speed (covers most global traffic)
+  const hubs = QUERY_HUBS.slice(0, 6);
+
+  for (let i = 0; i < hubs.length; i++) {
+    if (i > 0) await delay(1500);
+    const [lat, lon] = hubs[i];
+    const results = await fetchHub(lat, lon);
+    for (const a of results) {
+      const key = a.hex || `${a.lat},${a.lon}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        aircraft.push(parseAircraft(a));
       }
     }
   }

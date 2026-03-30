@@ -47,7 +47,7 @@ export async function GET() {
       return fetch(url, {
         headers: {
           "x-windy-api-key": apiKey,
-          "User-Agent": "Vyom/1.0",
+          "User-Agent": "TheSimulationSpace/1.0",
         },
         signal: AbortSignal.timeout(15_000),
         cache: "no-store",

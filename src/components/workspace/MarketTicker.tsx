@@ -1,23 +1,24 @@
 "use client";
 
+import { useMemo } from "react";
+import { useStore } from "@/store";
+
 interface TickerEntry {
   symbol: string;
   change?: number;
   value?: number;
 }
 
-const TICKERS: TickerEntry[] = [
-  { symbol: "SPY", change: 0.42 },
-  { symbol: "QQQ", change: 0.67 },
-  { symbol: "BTC", change: -1.2 },
-  { symbol: "VIX", value: 16.3 },
-  { symbol: "OIL", change: 1.8 },
-  { symbol: "GOLD", change: 0.3 },
-  { symbol: "10Y", value: 4.28 },
-];
-
-// Duplicate for seamless loop
-const TICKERS_DOUBLED = [...TICKERS, ...TICKERS];
+const TICKER_SYMBOLS = ["SPY", "QQQ", "BTC-USD", "^VIX", "CL=F", "GC=F", "TLT"];
+const DISPLAY_NAMES: Record<string, string> = {
+  "SPY": "SPY",
+  "QQQ": "QQQ",
+  "BTC-USD": "BTC",
+  "^VIX": "VIX",
+  "CL=F": "OIL",
+  "GC=F": "GOLD",
+  "TLT": "10Y",
+};
 
 function TickerItem({ entry }: { entry: TickerEntry }) {
   const hasChange = entry.change !== undefined;
@@ -50,10 +51,40 @@ function TickerItem({ entry }: { entry: TickerEntry }) {
 }
 
 export function MarketTicker() {
+  const marketQuotes = useStore((s) => s.marketQuotes);
+
+  const tickers = useMemo<TickerEntry[]>(() => {
+    const hasQuotes = Object.keys(marketQuotes).length > 0;
+    if (!hasQuotes) {
+      // Fallback static data until real data loads
+      return [
+        { symbol: "SPY", change: 0 },
+        { symbol: "QQQ", change: 0 },
+        { symbol: "BTC", change: 0 },
+        { symbol: "VIX", value: 0 },
+        { symbol: "OIL", change: 0 },
+        { symbol: "GOLD", change: 0 },
+        { symbol: "10Y", value: 0 },
+      ];
+    }
+    return TICKER_SYMBOLS.map((sym) => {
+      const q = marketQuotes[sym];
+      const displayName = DISPLAY_NAMES[sym] || sym;
+      if (!q) return { symbol: displayName, change: 0 };
+      // VIX shows absolute value, others show % change
+      if (sym === "^VIX") {
+        return { symbol: displayName, value: q.price };
+      }
+      return { symbol: displayName, change: q.changePct };
+    });
+  }, [marketQuotes]);
+
+  const tickersDoubled = [...tickers, ...tickers];
+
   return (
     <div className="flex-1 overflow-hidden">
       <div className="flex animate-ticker whitespace-nowrap text-[9px]">
-        {TICKERS_DOUBLED.map((entry, idx) => (
+        {tickersDoubled.map((entry, idx) => (
           <TickerItem key={`${entry.symbol}-${idx}`} entry={entry} />
         ))}
       </div>

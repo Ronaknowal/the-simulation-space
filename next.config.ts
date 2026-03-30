@@ -7,6 +7,15 @@ const nextConfig: NextConfig = {
   transpilePackages: ["cesium", "resium"],
 
   webpack: (config, { isServer }) => {
+    // Prevent bundling ws native addons (bufferutil, utf-8-validate)
+    // which cause "bufferUtil.mask is not a function" errors
+    if (isServer) {
+      config.externals = config.externals || [];
+      if (Array.isArray(config.externals)) {
+        config.externals.push("bufferutil", "utf-8-validate");
+      }
+    }
+
     if (!isServer) {
       config.plugins?.push(
         new CopyPlugin({

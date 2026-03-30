@@ -26,6 +26,7 @@ interface SidebarItem {
 type SidebarEntry = SidebarItem | "separator";
 
 const MODULE_IDS: ReadonlySet<string> = new Set(["pulse", "globe", "terminal", "simulation"]);
+const PANEL_IDS: ReadonlySet<string> = new Set(["layers", "alerts", "news", "social", "shaders", "recording", "settings"]);
 
 const SIDEBAR_ITEMS: readonly SidebarEntry[] = [
   { id: "pulse", label: "PULSE", icon: LayoutDashboard },
@@ -46,6 +47,8 @@ const SIDEBAR_ITEMS: readonly SidebarEntry[] = [
 export function Sidebar() {
   const activeModule = useStore((s) => s.activeModule);
   const setActiveModule = useStore((s) => s.setActiveModule);
+  const activeSidebarPanel = useStore((s) => s.activeSidebarPanel);
+  const setActiveSidebarPanel = useStore((s) => s.setActiveSidebarPanel);
 
   return (
     <nav className="flex flex-col w-12 bg-surface border-r border-border flex-shrink-0 overflow-y-auto">
@@ -60,7 +63,9 @@ export function Sidebar() {
         }
 
         const isModule = MODULE_IDS.has(entry.id);
-        const isActive = isModule && activeModule === entry.id;
+        const isPanel = PANEL_IDS.has(entry.id);
+        const isActiveModule = isModule && activeModule === entry.id;
+        const isActivePanel = isPanel && activeSidebarPanel === entry.id;
         const Icon = entry.icon;
 
         return (
@@ -69,15 +74,19 @@ export function Sidebar() {
             onClick={() => {
               if (isModule) {
                 setActiveModule(entry.id as ModuleId);
+                setActiveSidebarPanel(null); // close any open panel
+              } else if (isPanel) {
+                // Toggle: clicking again closes the panel
+                setActiveSidebarPanel(activeSidebarPanel === entry.id ? null : entry.id);
               }
             }}
-            disabled={!isModule}
             className={[
-              "flex flex-col items-center justify-center h-[38px] w-full flex-shrink-0 transition-colors",
-              isActive
+              "flex flex-col items-center justify-center h-[38px] w-full flex-shrink-0 transition-colors cursor-pointer",
+              isActiveModule
                 ? "text-accent bg-accent-subtle border-l-2 border-accent"
-                : "text-text-disabled border-l-2 border-transparent",
-              isModule ? "hover:text-accent cursor-pointer" : "cursor-default opacity-40",
+                : isActivePanel
+                ? "text-accent border-l-2 border-accent"
+                : "text-text-disabled border-l-2 border-transparent hover:text-accent",
             ].join(" ")}
             title={entry.label}
           >

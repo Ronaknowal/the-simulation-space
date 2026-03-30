@@ -9,7 +9,7 @@ export function createSubmarineCablesLayer(data: any, opacity: number = 1) {
     filled: false,
     lineWidthMinPixels: 1,
     lineWidthMaxPixels: 4,
-    getLineColor: [6, 182, 212, 180], // Cyan/teal — vyom-maritime
+    getLineColor: [6, 182, 212, 180], // Cyan/teal — maritime
     getLineWidth: 2,
     opacity,
   });

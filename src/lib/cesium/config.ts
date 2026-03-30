@@ -38,4 +38,7 @@ export const GLOBE_OPTIONS: Cesium.Viewer.ConstructorOptions = {
   shadows: false,
   requestRenderMode: false,
   maximumRenderTimeChange: Infinity,
+  contextOptions: {
+    webgl: { preserveDrawingBuffer: false },
+  },
 };

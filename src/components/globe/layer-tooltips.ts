@@ -1,5 +1,5 @@
 /**
- * Rich HTML tooltips for every pickable deck.gl layer in Vyom.
+ * Rich HTML tooltips for every pickable deck.gl layer in The Simulation Space.
  *
  * Each layer type gets a dedicated formatter that renders the layer's
  * metadata into styled HTML matching the platform's dark theme.

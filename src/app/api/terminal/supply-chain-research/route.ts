@@ -121,7 +121,7 @@ async function toolSearchSecFilings(company: string, terms: string): Promise<str
       `https://efts.sec.gov/LATEST/search-index?q=${encodeURIComponent(q)}` +
       `&forms=10-K&dateRange=custom&startdt=2023-01-01&enddt=2025-03-01`;
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'Vyom/1.0 research@example.com' },
+      headers: { 'User-Agent': 'TheSimulationSpace/1.0 research@example.com' },
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) return `SEC EDGAR error: ${res.status}`;
@@ -152,7 +152,7 @@ async function toolGeocodeLocation(query: string): Promise<string> {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`,
       {
-        headers: { 'User-Agent': 'Vyom/1.0 (supply-chain-research)' },
+        headers: { 'User-Agent': 'TheSimulationSpace/1.0 (supply-chain-research)' },
         signal: AbortSignal.timeout(8_000),
       }
     );

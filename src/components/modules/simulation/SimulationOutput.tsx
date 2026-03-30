@@ -17,14 +17,6 @@ const TABS: { id: OutputTab; label: string }[] = [
   { id: "report", label: "Report" },
 ];
 
-function getPhaseText(sim: SimulationState): string {
-  if (sim.progress < 30) return "Initializing agents";
-  if (sim.progress < 55) return "Analyzing agents";
-  if (sim.progress < 75) return "Building dependency graph";
-  if (sim.progress < 90) return "Projecting market impacts";
-  return "Generating report";
-}
-
 export default function SimulationOutput({ simulation }: SimulationOutputProps) {
   const [activeTab, setActiveTab] = useState<OutputTab>("feed");
 
@@ -34,11 +26,11 @@ export default function SimulationOutput({ simulation }: SimulationOutputProps) 
       {simulation.status === "running" && (
         <AIProgressIndicator
           isRunning={true}
-          phase={getPhaseText(simulation)}
+          phase={simulation.statusMessage || "Starting simulation..."}
           progress={simulation.progress / 100}
-          model="Gemini 2.5 Flash"
+          model="OASIS Multi-Agent"
           agentCount={simulation.agentCount}
-          elapsed={simulation.elapsed * 60}
+          elapsed={simulation.elapsed}
         />
       )}
       {/* Tab bar */}

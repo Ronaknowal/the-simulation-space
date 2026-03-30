@@ -64,6 +64,7 @@ export const useStore = create<AppStore>()(
           sharpenEnabled: state.sharpenEnabled,
           sharpenStrength: state.sharpenStrength,
           activeModule: state.activeModule,
+          activeSidebarPanel: state.activeSidebarPanel,
           activeSituationId: state.activeSituationId,
         }),
       }

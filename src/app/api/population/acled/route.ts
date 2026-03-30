@@ -60,7 +60,7 @@ export async function GET() {
   try {
     const upstream = await fetch(url, {
       headers: {
-        "User-Agent": "Vyom/1.0",
+        "User-Agent": "TheSimulationSpace/1.0",
         Accept: "application/json",
       },
       signal: AbortSignal.timeout(30_000), // ACLED can be slow

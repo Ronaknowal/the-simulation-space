@@ -1,159 +1,172 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useStore } from "@/store";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import SeedInput from "./SeedInput";
 import SimulationCard from "./SimulationCard";
 import SimulationOutput from "./SimulationOutput";
-import { useSimulationSSE } from "./useSimulationSSE";
 import ComparisonView from "./ComparisonView";
-
-/* ── Mock data for demonstration ── */
-
-const MOCK_AGENT_ACTIONS = [
-  { agentId: "a1", agentRole: "Geopolitical Analyst", action: "Monitoring diplomatic channels for retaliatory measures", simulatedTime: "T+00:02", timestamp: 1 },
-  { agentId: "a2", agentRole: "Energy Trader", action: "Evaluating crude oil futures exposure in affected region", simulatedTime: "T+00:05", timestamp: 2 },
-  { agentId: "a3", agentRole: "Supply Chain Mgr", action: "Mapping Tier-1 supplier dependencies in Southeast Asia", simulatedTime: "T+00:08", timestamp: 3 },
-  { agentId: "a4", agentRole: "Defense Analyst", action: "Assessing naval force repositioning patterns", simulatedTime: "T+00:12", timestamp: 4 },
-  { agentId: "a5", agentRole: "Macro Economist", action: "Projecting GDP impact on regional trading partners", simulatedTime: "T+00:15", timestamp: 5 },
-  { agentId: "a6", agentRole: "Tech Analyst", action: "Semiconductor supply disruption probability rising to 68%", simulatedTime: "T+00:18", timestamp: 6 },
-];
-
-const MOCK_IMPACTS = [
-  { sector: "Energy", severity: "HIGH" as const, description: "Crude oil price spike expected as shipping routes through Strait of Malacca face 72-hour delays", affectedEntities: ["OPEC+", "Shell", "BP", "Aramco"], confidence: 0.87 },
-  { sector: "Technology", severity: "HIGH" as const, description: "Semiconductor fabrication disruption likely affecting global chip supply for 6-8 weeks", affectedEntities: ["TSMC", "Samsung", "Intel", "NVIDIA"], confidence: 0.82 },
-  { sector: "Agriculture", severity: "MEDIUM" as const, description: "Rice and palm oil export disruptions from Southeast Asian producers", affectedEntities: ["Thailand", "Vietnam", "Indonesia"], confidence: 0.65 },
-  { sector: "Financial", severity: "LOW" as const, description: "Regional banking sector volatility within normal correction bounds", affectedEntities: ["DBS", "OCBC", "UOB"], confidence: 0.45 },
-];
-
-const MOCK_MARKET_IMPACTS = [
-  { ticker: "CL=F", name: "Crude Oil", predictedChange: 8.42, confidence: 0.89, reasoning: "Supply disruption in major shipping lane" },
-  { ticker: "TSM", name: "TSMC", predictedChange: -12.3, confidence: 0.84, reasoning: "Fab operations at risk from regional instability" },
-  { ticker: "NVDA", name: "NVIDIA", predictedChange: -7.8, confidence: 0.76, reasoning: "Supply chain dependency on TSMC" },
-  { ticker: "LMT", name: "Lockheed Martin", predictedChange: 4.2, confidence: 0.72, reasoning: "Defense spending likely to increase" },
-  { ticker: "GLD", name: "Gold ETF", predictedChange: 3.1, confidence: 0.81, reasoning: "Flight to safety assets" },
-  { ticker: "AAPL", name: "Apple", predictedChange: -5.4, confidence: 0.68, reasoning: "Manufacturing exposure in affected region" },
-];
+import type { AgentAction, CascadeImpact, MarketImpact } from "@/types/simulation";
 
 export default function SimulationModule() {
-  const simulations = useStore((s) => s.simulations);
   const startSimulation = useStore((s) => s.startSimulation);
   const updateSimulation = useStore((s) => s.updateSimulation);
   const compareSimulations = useStore((s) => s.compareSimulations);
 
+  const simulations = useStore((s) => s.simulations);
+
+  // Force re-render on any simulation data change
+  useStore((s) => {
+    let v = 0;
+    for (const id in s.simulations) {
+      const sim = s.simulations[id];
+      v += sim.progress + sim.agentFeed.length + sim.impacts.length +
+           sim.marketImpacts.length + (sim.status === "completed" ? 1000 : 0) +
+           (sim.status === "failed" ? 2000 : 0);
+    }
+    return v;
+  });
+
   const [selectedSimId, setSelectedSimId] = useState<string | null>(null);
-  const progressTimers = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
+  const abortRef = useRef<AbortController | null>(null);
 
-  // Connect SSE for the selected simulation
-  useSimulationSSE(selectedSimId);
-
-  // Get sorted simulation list (newest first)
   const simList = Object.values(simulations).sort((a, b) => b.createdAt - a.createdAt);
-
-  // Check if any simulation is currently running
   const hasRunning = simList.some((s) => s.status === "running");
-
-  // Completed simulations available for comparison
   const completedSims = simList.filter((s) => s.status === "completed");
   const canCompare = completedSims.length >= 2;
-
-  // Selected simulation data
   const selectedSim = selectedSimId ? simulations[selectedSimId] : null;
 
-  // Clean up progress timers on unmount
-  useEffect(() => {
-    return () => {
-      progressTimers.current.forEach((timer) => clearInterval(timer));
-      progressTimers.current.clear();
-    };
+  // Direct SSE connection — no useEffect hook, called directly from handleRun
+  const connectSSE = useCallback((simId: string, seed: string, config: any) => {
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    (async () => {
+      try {
+        const response = await fetch("/api/simulate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ simId, seed, config }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok || !response.body) {
+          const errText = await response.text().catch(() => response.statusText);
+          updateSimulation(simId, { status: "failed", error: `HTTP ${response.status}: ${errText.slice(0, 200)}` });
+          return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          // Normalize \r\n to \n (Windows Python outputs \r\n)
+          buffer = buffer.replace(/\r\n/g, "\n");
+          const frames = buffer.split("\n\n");
+          buffer = frames.pop() ?? "";
+
+          for (const frame of frames) {
+            if (!frame.trim()) continue;
+            let eventType = "message";
+            let data = "";
+            for (const line of frame.split("\n")) {
+              const trimmedLine = line.trim();
+              if (trimmedLine.startsWith("event: ")) eventType = trimmedLine.slice(7).trim();
+              else if (trimmedLine.startsWith("data: ")) data = trimmedLine.slice(6);
+            }
+            if (!data) continue;
+            try {
+              const parsed = JSON.parse(data);
+              handleEvent(simId, eventType, parsed);
+            } catch { /* skip */ }
+          }
+        }
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        updateSimulation(simId, {
+          status: "failed",
+          error: err instanceof Error ? err.message : "SSE connection failed",
+        });
+      }
+    })();
+  }, [updateSimulation]);
+
+  const handleEvent = useCallback((simId: string, eventType: string, data: any) => {
+    const current = useStore.getState().simulations[simId];
+    if (!current) return;
+    const update = useStore.getState().updateSimulation;
+
+    switch (eventType) {
+      case "status": {
+        update(simId, {
+          progress: data.progress ?? current.progress,
+          elapsed: data.elapsed ?? current.elapsed,
+          statusMessage: data.message ?? current.statusMessage,
+        });
+        break;
+      }
+      case "agent_action": {
+        update(simId, { agentFeed: [...current.agentFeed, data] });
+        break;
+      }
+      case "impact": {
+        update(simId, { impacts: [...current.impacts, data] });
+        break;
+      }
+      case "market_impact": {
+        update(simId, { marketImpacts: [...current.marketImpacts, data] });
+        break;
+      }
+      case "complete": {
+        const finalUpdate: Record<string, unknown> = {
+          status: "completed",
+          progress: 100,
+          report: data.report ?? null,
+          agentCount: current.config.agentCount,
+          elapsed: data.elapsed ?? current.elapsed,
+          statusMessage: "Simulation complete",
+        };
+        if (data.actions?.length > current.agentFeed.length) finalUpdate.agentFeed = data.actions;
+        if (data.impacts?.length > current.impacts.length) finalUpdate.impacts = data.impacts;
+        if (data.marketImpacts?.length > current.marketImpacts.length) finalUpdate.marketImpacts = data.marketImpacts;
+        update(simId, finalUpdate);
+        break;
+      }
+      case "error": {
+        update(simId, { status: "failed", error: data.message ?? "Unknown error" });
+        break;
+      }
+    }
   }, []);
 
   const handleRun = useCallback(
     (seed: string, config: { agentCount: number; durationMinutes: number; focusSectors: string[] }) => {
-      const id = startSimulation(seed, {
-        agentCount: config.agentCount,
-        durationMinutes: config.durationMinutes,
-        focusSectors: config.focusSectors,
-        geographicScope: [],
-      });
-
-      // Transition to running
+      const fullConfig = { ...config, geographicScope: [] as string[] };
+      const id = startSimulation(seed, fullConfig);
       updateSimulation(id, { status: "running" });
       setSelectedSimId(id);
-
-      // Mock progress animation: increment progress + feed mock data over time
-      let tick = 0;
-      const totalTicks = 30; // complete in ~30 seconds for demo
-      const timer = setInterval(() => {
-        tick++;
-        const progress = Math.min((tick / totalTicks) * 100, 100);
-        const elapsed = Math.round((tick / totalTicks) * config.durationMinutes);
-
-        // Feed mock agent actions progressively
-        const actionIndex = Math.min(
-          Math.floor((tick / totalTicks) * MOCK_AGENT_ACTIONS.length),
-          MOCK_AGENT_ACTIONS.length
-        );
-
-        // Feed mock impacts at ~40% progress
-        const impactIndex =
-          progress > 40
-            ? Math.min(
-                Math.floor(((progress - 40) / 60) * MOCK_IMPACTS.length),
-                MOCK_IMPACTS.length
-              )
-            : 0;
-
-        // Feed mock market impacts at ~60% progress
-        const marketIndex =
-          progress > 60
-            ? Math.min(
-                Math.floor(((progress - 60) / 40) * MOCK_MARKET_IMPACTS.length),
-                MOCK_MARKET_IMPACTS.length
-              )
-            : 0;
-
-        const updates: Partial<typeof simulations[string]> = {
-          progress,
-          elapsed,
-          agentFeed: MOCK_AGENT_ACTIONS.slice(0, actionIndex),
-          impacts: MOCK_IMPACTS.slice(0, impactIndex),
-          marketImpacts: MOCK_MARKET_IMPACTS.slice(0, marketIndex),
-        };
-
-        if (tick >= totalTicks) {
-          updates.status = "completed";
-          updates.progress = 100;
-          updates.elapsed = config.durationMinutes;
-          updates.agentFeed = [...MOCK_AGENT_ACTIONS];
-          updates.impacts = [...MOCK_IMPACTS];
-          updates.marketImpacts = [...MOCK_MARKET_IMPACTS];
-          updates.report = generateMockReport(seed, config);
-          clearInterval(timer);
-          progressTimers.current.delete(id);
-        }
-
-        updateSimulation(id, updates);
-      }, 1000);
-
-      progressTimers.current.set(id, timer);
+      // Connect SSE directly — no useEffect dance
+      connectSSE(id, seed, fullConfig);
     },
-    [startSimulation, updateSimulation]
+    [startSimulation, updateSimulation, connectSSE]
   );
 
   const handleCompare = () => {
-    // Use the two most recent completed simulations
     const ids = completedSims.slice(0, 2).map((s) => s.id);
     compareSimulations(ids);
   };
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-bg">
-      {/* Comparison overlay */}
       <ComparisonView />
 
-      {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border flex-shrink-0">
         <span className="text-[9px] uppercase tracking-widest text-text-disabled">
           Simulation Engine
@@ -176,14 +189,11 @@ export default function SimulationModule() {
         </div>
       </div>
 
-      {/* Main content: seed input (left 60%) + sim cards (right 40%) */}
       <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* Left: Seed Input */}
         <div className="w-[60%] border-r border-border p-3 overflow-y-auto">
           <SeedInput onRun={handleRun} isRunning={hasRunning} />
         </div>
 
-        {/* Right: Active Simulations */}
         <div className="w-[40%] flex flex-col overflow-hidden">
           <div className="px-2 py-1.5 border-b border-border flex-shrink-0">
             <span className="text-[8px] uppercase tracking-widest text-text-disabled">
@@ -214,7 +224,6 @@ export default function SimulationModule() {
         </div>
       </div>
 
-      {/* Bottom: Simulation Output (only when a simulation is selected) */}
       {selectedSim && (
         <div className="border-t border-border h-[45%] flex-shrink-0 overflow-hidden">
           <ErrorBoundary name="sim-output">
@@ -224,47 +233,4 @@ export default function SimulationModule() {
       )}
     </div>
   );
-}
-
-/* ── Mock report generator ── */
-
-function generateMockReport(
-  seed: string,
-  config: { agentCount: number; durationMinutes: number; focusSectors: string[] }
-): string {
-  return `SIMULATION REPORT
-${"=".repeat(60)}
-
-EVENT SEED:
-${seed}
-
-CONFIGURATION:
-  Agents:    ${config.agentCount}
-  Duration:  ${config.durationMinutes} minutes
-  Sectors:   ${config.focusSectors.join(", ")}
-
-${"=".repeat(60)}
-EXECUTIVE SUMMARY
-
-This simulation deployed ${config.agentCount} autonomous agents across
-${config.focusSectors.length} sector(s) to model cascading impacts of
-the described event over a ${config.durationMinutes}-minute window.
-
-KEY FINDINGS:
-  1. HIGH severity impacts detected in Energy and Technology sectors
-  2. Supply chain disruptions estimated at 6-8 week recovery period
-  3. Crude oil futures projected +8.4% on supply route disruption
-  4. Semiconductor supply chain faces critical bottleneck risk
-  5. Defense sector positioned for counter-cyclical gains
-
-AGENT CONSENSUS:
-  - 87% of agents predict sustained energy price volatility
-  - 82% flag semiconductor supply as critical risk vector
-  - 72% recommend increased defense sector allocation
-  - 65% project agricultural commodity disruption in SE Asia
-
-CONFIDENCE LEVEL: MODERATE-HIGH (0.78)
-
-${"=".repeat(60)}
-END OF REPORT`;
 }

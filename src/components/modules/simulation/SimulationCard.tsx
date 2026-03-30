@@ -67,18 +67,31 @@ export default function SimulationCard({ simulation, isSelected, onSelect }: Sim
 
       {/* Status line */}
       <p className={`text-[8px] uppercase tracking-widest ${config.textClass}`}>
-        {config.label} {formatAgentCount(simulation.agentCount)} agents{" "}
-        {formatElapsed(simulation.elapsed)}
+        {config.label}
+        {simulation.agentCount > 0 && ` ${formatAgentCount(simulation.agentCount)} agents`}
+        {simulation.elapsed > 0 && ` ${formatElapsed(simulation.elapsed)}`}
       </p>
 
-      {/* Progress bar for running simulations */}
+      {/* Error message */}
+      {simulation.status === "failed" && simulation.error && (
+        <p className="text-[8px] text-negative/70 mt-0.5 line-clamp-2">{simulation.error}</p>
+      )}
+
+      {/* Live status message + progress bar for running simulations */}
       {simulation.status === "running" && (
-        <div className="mt-1 h-[2px] bg-border overflow-hidden">
-          <div
-            className="h-full bg-warning transition-all duration-1000 ease-linear"
-            style={{ width: `${simulation.progress}%` }}
-          />
-        </div>
+        <>
+          {simulation.statusMessage && (
+            <p className="text-[7px] text-text-disabled mt-0.5 truncate">
+              {simulation.statusMessage}
+            </p>
+          )}
+          <div className="mt-1 h-[2px] bg-border overflow-hidden">
+            <div
+              className="h-full bg-warning transition-all duration-1000 ease-linear"
+              style={{ width: `${simulation.progress}%` }}
+            />
+          </div>
+        </>
       )}
     </button>
   );

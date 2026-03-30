@@ -69,16 +69,7 @@ export function EventsPanel() {
   );
 
   const displayAlerts = useMemo(() => {
-    if (alerts.length > 0) return alerts.filter((a) => !a.dismissed);
-    // Fallback mock events when no real alerts exist
-    return [
-      { id: "m1", priority: "FLASH" as const, title: "M6.2 earthquake off Japan coast", body: "", source: "USGS", timestamp: Date.now() - 2 * 60_000, dismissed: false },
-      { id: "m2", priority: "PRIORITY" as const, title: "EU announces chip export controls", body: "", source: "GDELT", timestamp: Date.now() - 14 * 60_000, dismissed: false },
-      { id: "m3", priority: "ROUTINE" as const, title: "Fed governor speech scheduled", body: "", source: "Calendar", timestamp: Date.now() - 60 * 60_000, dismissed: false },
-      { id: "m4", priority: "PRIORITY" as const, title: "Suez Canal traffic delayed 12hrs", body: "", source: "AIS", timestamp: Date.now() - 2 * 3600_000, dismissed: false },
-      { id: "m5", priority: "FLASH" as const, title: "Taiwan strait military tension", body: "", source: "GDELT", timestamp: Date.now() - 3 * 3600_000, dismissed: false },
-      { id: "m6", priority: "ROUTINE" as const, title: "BLS CPI release 8:30am EST", body: "", source: "Calendar", timestamp: Date.now() - 5 * 3600_000, dismissed: false },
-    ];
+    return alerts.filter((a) => !a.dismissed);
   }, [alerts]);
 
   // If a situation is selected, show the detail view
@@ -147,8 +138,8 @@ export function EventsPanel() {
                 </div>
               ))}
               {displayAlerts.length === 0 && (
-                <div className="flex items-center justify-center py-4 text-text-disabled text-[8px] uppercase tracking-widest">
-                  No active events
+                <div className="flex items-center justify-center py-4 text-text-disabled text-[8px] uppercase tracking-widest animate-pulse">
+                  Awaiting intel feeds...
                 </div>
               )}
             </div>

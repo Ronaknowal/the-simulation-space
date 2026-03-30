@@ -40,7 +40,7 @@ export interface RiskGaugeData {
   lastUpdated: number;
 }
 
-export interface VyomAlert {
+export interface TSSAlert {
   id: string;
   priority: AlertPriority;
   source: string;

@@ -37,39 +37,39 @@ export class ShaderPipeline {
 
     switch (mode) {
       case "crt":
-        this.addStage("vyom-crt", CRT_FRAGMENT_SHADER, {
+        this.addStage("tss-crt", CRT_FRAGMENT_SHADER, {
           time: 0,
           resolution,
         });
         break;
 
       case "nvg":
-        this.addStage("vyom-nvg", NVG_FRAGMENT_SHADER, {
+        this.addStage("tss-nvg", NVG_FRAGMENT_SHADER, {
           time: 0,
           resolution,
         });
         break;
 
       case "flir":
-        this.addStage("vyom-flir", FLIR_FRAGMENT_SHADER, {
+        this.addStage("tss-flir", FLIR_FRAGMENT_SHADER, {
           time: 0,
           resolution,
         });
         break;
 
       case "anime":
-        this.addStage("vyom-anime", ANIME_CEL_FRAGMENT_SHADER, {
+        this.addStage("tss-anime", ANIME_CEL_FRAGMENT_SHADER, {
           resolution,
         });
         break;
 
       case "god":
         // God mode: CRT + sharpen
-        this.addStage("vyom-sharpen", SHARPEN_FRAGMENT_SHADER, {
+        this.addStage("tss-sharpen", SHARPEN_FRAGMENT_SHADER, {
           resolution,
           strength: 0.5,
         });
-        this.addStage("vyom-crt", CRT_FRAGMENT_SHADER, {
+        this.addStage("tss-crt", CRT_FRAGMENT_SHADER, {
           time: 0,
           resolution,
         });
@@ -106,7 +106,7 @@ export class ShaderPipeline {
   setSharpen(enabled: boolean, strength: number = 0.5) {
     // Remove existing sharpen stage
     const existing = this.activeStages.find(
-      (s) => (s as any)._name === "vyom-sharpen"
+      (s) => (s as any)._name === "tss-sharpen"
     );
     if (existing) {
       this.viewer.scene.postProcessStages.remove(existing);
@@ -115,7 +115,7 @@ export class ShaderPipeline {
 
     if (enabled) {
       const canvas = this.viewer.scene.canvas;
-      this.addStage("vyom-sharpen", SHARPEN_FRAGMENT_SHADER, {
+      this.addStage("tss-sharpen", SHARPEN_FRAGMENT_SHADER, {
         resolution: new Cesium.Cartesian2(canvas.width, canvas.height),
         strength,
       });

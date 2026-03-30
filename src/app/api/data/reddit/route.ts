@@ -4,7 +4,7 @@ const SUBREDDITS = ["worldnews", "geopolitics", "economics", "wallstreetbets", "
 
 async function getHot(subreddit: string, limit = 10) {
   const res = await fetch(`https://www.reddit.com/r/${subreddit}/hot.json?limit=${limit}&raw_json=1`, {
-    headers: { "User-Agent": "Vyom/1.0 intelligence-engine" },
+    headers: { "User-Agent": "TheSimulationSpace/1.0 intelligence-engine" },
     signal: AbortSignal.timeout(8_000),
   });
   if (!res.ok) return null;

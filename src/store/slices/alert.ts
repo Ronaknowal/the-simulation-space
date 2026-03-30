@@ -1,10 +1,10 @@
 import type { StateCreator } from "zustand";
-import type { VyomAlert } from "@/types/store";
+import type { TSSAlert } from "@/types/store";
 import type { AppStore } from "../index";
 
 export interface AlertSlice {
-  alerts: VyomAlert[];
-  addAlert: (alert: Omit<VyomAlert, "id" | "dismissed">) => void;
+  alerts: TSSAlert[];
+  addAlert: (alert: Omit<TSSAlert, "id" | "dismissed">) => void;
   dismissAlert: (id: string) => void;
   clearDismissed: () => void;
 }

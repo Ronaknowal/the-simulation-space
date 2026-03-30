@@ -9,6 +9,10 @@ import Timeline from "./Timeline";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import PulseModule from "@/components/modules/pulse/PulseModule";
 import EntityDetailPanel from "@/components/panels/EntityDetailPanel";
+import SidebarPanelHost from "./SidebarPanelHost";
+import { useDataBootstrap } from "@/hooks/useDataBootstrap";
+import { useMarketDataBridge } from "@/hooks/useMarketDataBridge";
+import { useAlertEngine } from "@/hooks/useAlertEngine";
 
 const GlobeModule = dynamic(
   () => import("@/components/modules/globe/GlobeModule"),
@@ -25,11 +29,23 @@ const SimulationModule = dynamic(
   { ssr: false, loading: () => <ModulePlaceholder name="SIMULATION" phase={3} /> }
 );
 
+const LayerManager = dynamic(
+  () => import("@/components/globe/LayerManager"),
+  { ssr: false },
+);
+
 export default function WorkspaceShell() {
   const activeModule = useStore((s) => s.activeModule);
 
+  // Bootstrap background data layers + bridge market data + alert engine
+  useDataBootstrap();
+  useMarketDataBridge();
+  useAlertEngine();
+
   return (
     <div className="flex flex-col h-screen overflow-hidden">
+      {/* Background layer controllers — always mounted */}
+      <LayerManager />
       <TopBar />
       <TabBar />
       <div className="flex flex-1 overflow-hidden">
@@ -42,6 +58,7 @@ export default function WorkspaceShell() {
             {activeModule === "simulation" && <SimulationModule />}
           </ErrorBoundary>
           <EntityDetailPanel />
+          <SidebarPanelHost />
         </main>
       </div>
       <Timeline />

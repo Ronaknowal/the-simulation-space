@@ -1,6 +1,6 @@
 /**
  * Normalizes heterogeneous layer data into a flat array of geo-located items.
- * Handles the common data shapes used across all Vyom layers.
+ * Handles the common data shapes used across all layers.
  */
 
 import type { ExtractedItem } from "@/types/recording";

@@ -8,11 +8,13 @@ export interface UISlice {
   searchOpen: boolean;
   performanceMonitorVisible: boolean;
   activePreset: string | null;
+  activeSidebarPanel: string | null;
   setActiveModule: (module: ModuleId) => void;
   setExpandedPanel: (panelId: string | null) => void;
   setSearchOpen: (open: boolean) => void;
   togglePerformanceMonitor: () => void;
   setActivePreset: (preset: string | null) => void;
+  setActiveSidebarPanel: (panelId: string | null) => void;
 }
 
 export const createUISlice: StateCreator<
@@ -26,6 +28,7 @@ export const createUISlice: StateCreator<
   searchOpen: false,
   performanceMonitorVisible: false,
   activePreset: null,
+  activeSidebarPanel: null,
 
   setActiveModule: (module) =>
     set((state) => {
@@ -46,5 +49,9 @@ export const createUISlice: StateCreator<
   setActivePreset: (preset) =>
     set((state) => {
       state.activePreset = preset;
+    }),
+  setActiveSidebarPanel: (panelId) =>
+    set((state) => {
+      state.activeSidebarPanel = panelId;
     }),
 });

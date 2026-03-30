@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
     // Bitnodes snapshot can be 10-30MB — allow longer timeout
     const timeout = parsed.hostname === "bitnodes.io" ? 30_000 : 15_000;
     const upstream = await fetch(rawUrl, {
-      headers: { "User-Agent": "Vyom/1.0" },
+      headers: { "User-Agent": "TheSimulationSpace/1.0" },
       signal: AbortSignal.timeout(timeout),
     });
 
